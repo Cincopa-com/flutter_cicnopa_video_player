@@ -1,0 +1,42 @@
+# Dart & Flutter build artifacts
+.dart_tool/
+.buildlog/
+.packages
+pubspec.lock
+
+# Generated files
+/generated/
+.g.dart
+.g.part.dart
+
+# Build outputs
+build/
+coverage/
+
+# Dependency directories
+.pub/
+
+# IDE settings
+.idea/
+.vscode/
+*.iml
+
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+
+# Misc
+*.class
+*.lock
+*.pyc
+
+
+# Flutter plugin metadata (regenerated on each build)
+.flutter-plugins
+.flutter-plugins-dependencies
