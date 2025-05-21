@@ -64,8 +64,7 @@ class _MyAppState extends State<MyApp> {
 
   // Video config for analytics
   static const Map<String, String> _configs = {
-    'uid': 'A4AAePwwFKPJ',
-    'video_name': 'Amazing HLS Video',
+    'uid': CINCOPA_UID,
   };
 
   void _switchVideo(String newUrl, String newTitle) {
@@ -90,7 +89,7 @@ class _MyAppState extends State<MyApp> {
                 child: CincopaVideoPlayer(
                   hlsUrl: _hlsStreamUrl,
                   userData: _userData,
-                  configs: {..._configs, 'video_name': _videoTitle},
+                  configs: _configs,
                 ),
               ),
               ElevatedButton(

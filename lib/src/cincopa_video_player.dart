@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'cincopa_video_analytics_service.dart';
 
@@ -27,7 +29,11 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
   late final CincopaVideoAnalyticsService _analyticsService;
   bool _controlsVisible = true;
   Timer? _controlsTimer;
-
+  
+  String _videoName = '';
+  String _posterUrl = '';
+ 
+  
   @override
   void initState() {
     super.initState();
@@ -41,16 +47,41 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
     );
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.hlsUrl))
       ..initialize().then((_) {
+
+
+        // ────── NEW: fetch title & poster ──────
+        _fetchVideoMetadata(rid).then((_) {
+          // init analytics with fetched video_name
+          _analyticsService.initialize(
+            _controller.value.duration.inMilliseconds,
+            _videoName,
+          );
+          _startControlsTimer();
+          _controller.play();
+          setState(() {});
+        });
         _controller.addListener(_videoListener);
-        _analyticsService.initialize(
-          _controller.value.duration.inMilliseconds,
-          widget.configs?['video_name'],
-        );
-        _startControlsTimer();
-        _controller.play();
-        setState(() {});
       });
   }
+
+  // ────── NEW FUNCTION: fetch video_name & poster URL ──────
+  Future<void> _fetchVideoMetadata(String rid) async {
+    final url = 'https://rt.cincopa.com/jsonv2.aspx?fid=A4HAcLOLOO68!$rid';
+    try {
+      final resp = await http.get(Uri.parse(url));
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body) as Map<String, dynamic>;
+        final items = data['items'] as List<dynamic>? ?? [];
+        if (items.isNotEmpty) {
+          final item = items[0] as Map<String, dynamic>;
+          _videoName = item['title'] ?? item['filename'] ?? '';
+          final versions = item['versions'] as Map<String, dynamic>? ?? {};
+          _posterUrl = (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
+        }
+      }
+    } catch (_) { /* ignore errors */ }
+  }
+
 
   void _videoListener() {
     final playing = _controller.value.isPlaying;
