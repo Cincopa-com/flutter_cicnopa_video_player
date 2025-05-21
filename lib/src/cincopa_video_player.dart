@@ -31,7 +31,7 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
   Timer? _controlsTimer;
   
   String _videoName = '';
-  String _posterUrl = '';
+  //String _posterUrl = '';
  
   
   @override
@@ -76,7 +76,7 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
           final item = items[0] as Map<String, dynamic>;
           _videoName = item['title'] ?? item['filename'] ?? '';
           final versions = item['versions'] as Map<String, dynamic>? ?? {};
-          _posterUrl = (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
+          //_posterUrl = (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
         }
       }
     } catch (_) { /* ignore errors */ }
