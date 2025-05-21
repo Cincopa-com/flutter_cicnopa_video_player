@@ -75,7 +75,7 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
         if (items.isNotEmpty) {
           final item = items[0] as Map<String, dynamic>;
           _videoName = item['title'] ?? item['filename'] ?? '';
-          final versions = item['versions'] as Map<String, dynamic>? ?? {};
+          //final versions = item['versions'] as Map<String, dynamic>? ?? {};
           //_posterUrl = (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
         }
       }
