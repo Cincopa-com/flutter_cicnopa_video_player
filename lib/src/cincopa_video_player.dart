@@ -9,13 +9,11 @@ import 'cincopa_video_analytics_service.dart';
 class CincopaVideoPlayer extends StatefulWidget {
   final String hlsUrl;
   final Map<String, String>? userData;
-  final Map<String, String>? configs;
 
   const CincopaVideoPlayer({
     Key? key,
     required this.hlsUrl,
-    this.userData,
-    this.configs,
+    this.userData
   }) : super(key: key);
 
   @override
@@ -31,6 +29,7 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
   Timer? _controlsTimer;
   
   String _videoName = '';
+  String _uid = '';
   //String _posterUrl = '';
  
   
@@ -38,13 +37,7 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
   void initState() {
     super.initState();
     final rid = extractRidFromUrl(widget.hlsUrl)!;
-    _analyticsService = CincopaVideoAnalyticsService(
-      rid: rid,
-      uid: widget.configs?['uid'],
-      userEmail: widget.userData?['email'],
-      userName: widget.userData?['name'],
-      userAccountId: widget.userData?['acc_id'],
-    );
+    
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.hlsUrl))
       ..initialize().then((_) {
 
@@ -52,6 +45,14 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
         // ────── NEW: fetch title & poster ──────
         _fetchVideoMetadata(rid).then((_) {
           // init analytics with fetched video_name
+          _analyticsService = CincopaVideoAnalyticsService(
+            rid: rid,
+            uid: _uid,
+            userEmail: widget.userData?['email'],
+            userName: widget.userData?['name'],
+            userAccountId: widget.userData?['acc_id'],
+          );
+
           _analyticsService.initialize(
             _controller.value.duration.inMilliseconds,
             _videoName,
@@ -66,15 +67,35 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
 
   // ────── NEW FUNCTION: fetch video_name & poster URL ──────
   Future<void> _fetchVideoMetadata(String rid) async {
-    final url = 'https://rt.cincopa.com/jsonv2.aspx?fid=A4HAcLOLOO68!$rid';
+    final url =   'https://rtcdn.cincopa.com/meta_json.aspx?fid=A4HAcLOLOO68!$rid&ver=app'; 
+  
     try {
       final resp = await http.get(Uri.parse(url));
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body) as Map<String, dynamic>;
-        final items = data['items'] as List<dynamic>? ?? [];
+
+        final accMap   = data['acc']   as Map<String, dynamic>?;
+        final userMap  = accMap?['user'] as Map<String, dynamic>?;
+        final maybeUid = userMap?['uid'] as String?;
+
+
+        if (maybeUid != null && maybeUid.isNotEmpty) {
+             _uid = maybeUid;
+         }
+
+
+         final media    = data['media'] as Map<String, dynamic>?;
+         final items    = (media?['items'] as List<dynamic>?) ?? [];
+
+
+
         if (items.isNotEmpty) {
-          final item = items[0] as Map<String, dynamic>;
-          _videoName = item['title'] ?? item['filename'] ?? '';
+          final item = items.first as Map<String, dynamic>;
+          final fetchedName = (item['title'] as String?)
+                       ?? (item['filename'] as String?)
+                       ?? '';
+          _videoName = fetchedName;
+          
           //final versions = item['versions'] as Map<String, dynamic>? ?? {};
           //_posterUrl = (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
         }

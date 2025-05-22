@@ -1,6 +1,6 @@
 name: cincopa_video_player
 description: A Flutter HLS video player with analytics based on cincopa.
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/Cincopa-com/flutter_cicnopa_video_player.git
 environment:
   sdk: ">=2.18.0 <4.0.0"

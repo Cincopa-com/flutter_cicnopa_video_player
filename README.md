@@ -61,12 +61,6 @@ class _MyAppState extends State<MyApp> {
       'cc_id': '${1000 + id}',
     };
   }
-
-  // Video config for analytics
-  static const Map<String, String> _configs = {
-    'uid': CINCOPA_UID,
-  };
-
   void _switchVideo(String newUrl, String newTitle) {
     setState(() {
       _hlsStreamUrl = newUrl;
@@ -88,8 +82,7 @@ class _MyAppState extends State<MyApp> {
                 key: _videoPlayerKey,
                 child: CincopaVideoPlayer(
                   hlsUrl: _hlsStreamUrl,
-                  userData: _userData,
-                  configs: _configs,
+                  userData: _userData
                 ),
               ),
               ElevatedButton(
@@ -115,8 +108,7 @@ class _MyAppState extends State<MyApp> {
 | Parameter     | Type                 | Description                                     |
 | ------------- | -------------------- | ----------------------------------------------- |
 | `hlsUrl`      | `String`             | The `.m3u8` stream URL to play.                 |
-| `userData`    | `Map<String,String>` | Metadata for Cincopa analytics (email, acc\_id). |
-| `configs`     | `Map<String,String>` | Video-specific config (uid, video\_name, etc).  |
+| `userData`    | `Map<String,String>` | Metadata for Cincopa analytics (email, acc\_id).|
 | `key`         | `Key?`               | Optional key to force widget rebuilds.          |
 | `aspectRatio` | `double?`            | Aspect ratio for the player container.          |
 

@@ -5,6 +5,11 @@ All notable changes to this project will be documented.
 ## [0.0.2] - 2025-05-22
 
 ### Changed
+- `config` no longer needs to be passed manually; it is now automatically extracted and used for analytics.
+
+## [0.0.2] - 2025-05-22
+
+### Changed
 - `video_name` no longer needs to be passed manually; it is now automatically extracted and used for analytics.
 
 ## [0.0.1] - 2025-05-20
