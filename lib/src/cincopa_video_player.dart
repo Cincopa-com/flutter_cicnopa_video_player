@@ -9,12 +9,14 @@ import 'cincopa_video_analytics_service.dart';
 class CincopaVideoPlayer extends StatefulWidget {
   final String hlsUrl;
   final Map<String, String>? userData;
+  final Map<String, dynamic> configs;
 
-  const CincopaVideoPlayer({
-    Key? key,
-    required this.hlsUrl,
-    this.userData
-  }) : super(key: key);
+  const CincopaVideoPlayer(
+      {Key? key,
+      required this.hlsUrl,
+      this.userData,
+      this.configs = const {"autoplay": true}})
+      : super(key: key);
 
   @override
   State<CincopaVideoPlayer> createState() => _CincopaVideoPlayerState();
@@ -22,87 +24,88 @@ class CincopaVideoPlayer extends StatefulWidget {
 
 class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
   late final VideoPlayerController _controller;
-  bool _isPlaying = false;
-  Duration _currentTime = Duration.zero;
+  late final Future<void> _ready;
   late final CincopaVideoAnalyticsService _analyticsService;
+  late final bool _autoplay;
+
+  bool _isPlaying = false;
   bool _controlsVisible = true;
+  Duration _currentTime = Duration.zero;
   Timer? _controlsTimer;
-  
+
   String _videoName = '';
   String _uid = '';
-  //String _posterUrl = '';
- 
-  
+  String _posterUrl = '';
+
   @override
   void initState() {
     super.initState();
     final rid = extractRidFromUrl(widget.hlsUrl)!;
-    
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.hlsUrl))
-      ..initialize().then((_) {
+    _autoplay = (widget.configs['autoplay'] as bool?) ?? true;
+    // 1) create controller
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.hlsUrl));
 
-
-        // ────── NEW: fetch title & poster ──────
-        _fetchVideoMetadata(rid).then((_) {
-          // init analytics with fetched video_name
-          _analyticsService = CincopaVideoAnalyticsService(
-            rid: rid,
-            uid: _uid,
-            userEmail: widget.userData?['email'],
-            userName: widget.userData?['name'],
-            userAccountId: widget.userData?['acc_id'],
-          );
-
-          _analyticsService.initialize(
-            _controller.value.duration.inMilliseconds,
-            _videoName,
-          );
-          _startControlsTimer();
-          _controller.play();
-          setState(() {});
-        });
-        _controller.addListener(_videoListener);
-      });
+    // 2) run both futures in parallel
+    _ready = Future.wait([
+      _controller.initialize(),
+      _fetchVideoMetadata(
+          rid), // must set _posterUrl, _videoName, _uid & call setState() there
+    ]).then((_) {
+      // 3) analytics + play + listener + controls timer
+      _analyticsService = CincopaVideoAnalyticsService(
+        rid: rid,
+        uid: _uid,
+        userEmail: widget.userData?['email'],
+        userName: widget.userData?['name'],
+        userAccountId: widget.userData?['acc_id'],
+      );
+      _analyticsService.initialize(
+        _controller.value.duration.inMilliseconds,
+        _videoName,
+      );
+      _startControlsTimer();
+      _controller.addListener(_videoListener);
+      if (_autoplay) {
+        _controller.play();
+      }
+    });
   }
 
   // ────── NEW FUNCTION: fetch video_name & poster URL ──────
   Future<void> _fetchVideoMetadata(String rid) async {
-    final url =   'https://rtcdn.cincopa.com/meta_json.aspx?fid=A4HAcLOLOO68!$rid&ver=app'; 
-  
+    final url =
+        'https://rtcdn.cincopa.com/meta_json.aspx?fid=A4HAcLOLOO68!$rid&ver=app';
+
     try {
       final resp = await http.get(Uri.parse(url));
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body) as Map<String, dynamic>;
 
-        final accMap   = data['acc']   as Map<String, dynamic>?;
-        final userMap  = accMap?['user'] as Map<String, dynamic>?;
+        final accMap = data['acc'] as Map<String, dynamic>?;
+        final userMap = accMap?['user'] as Map<String, dynamic>?;
         final maybeUid = userMap?['uid'] as String?;
 
-
         if (maybeUid != null && maybeUid.isNotEmpty) {
-             _uid = maybeUid;
-         }
+          _uid = maybeUid;
+        }
 
-
-         final media    = data['media'] as Map<String, dynamic>?;
-         final items    = (media?['items'] as List<dynamic>?) ?? [];
-
-
+        final media = data['media'] as Map<String, dynamic>?;
+        final items = (media?['items'] as List<dynamic>?) ?? [];
 
         if (items.isNotEmpty) {
           final item = items.first as Map<String, dynamic>;
-          final fetchedName = (item['title'] as String?)
-                       ?? (item['filename'] as String?)
-                       ?? '';
+          final fetchedName =
+              (item['title'] as String?) ?? (item['filename'] as String?) ?? '';
           _videoName = fetchedName;
-          
-          //final versions = item['versions'] as Map<String, dynamic>? ?? {};
-          //_posterUrl = (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
+
+          final versions = item['versions'] as Map<String, dynamic>? ?? {};
+          _posterUrl =
+              (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
+          setState(() {});
         }
       }
-    } catch (_) { /* ignore errors */ }
+    } catch (_) {/* ignore errors */}
   }
-
 
   void _videoListener() {
     final playing = _controller.value.isPlaying;
@@ -188,131 +191,150 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: _controller.value.aspectRatio,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _toggleControlsVisibility,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            VideoPlayer(_controller),
+    return FutureBuilder(
+        future: _ready,
+        builder: (context, snap) {
+          // still loading metadata or video initialization, or error
+           if (_posterUrl.isNotEmpty && (snap.connectionState != ConnectionState.done ||
+              _controller.value.hasError ||
+              _controller.value.isBuffering)) {
+            return AspectRatio(
+              aspectRatio: _controller.value.isInitialized
+                  ? _controller.value.aspectRatio
+                  : (16 / 9),
+              child: Image.network(_posterUrl, fit: BoxFit.cover),
+            );
+          }
 
-            // when hidden: thin bottom bar only
-            if (!_controlsVisible)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: SizedBox(
-                  height: 3,
-                  child: VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: false,
-                    colors: VideoProgressColors(
-                      playedColor: Color(0xFF0086CF),
-                      bufferedColor: Colors.white60,
-                      backgroundColor: Colors.white24,
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-
-            if (_controlsVisible)
-              // controls + integrated progress bar
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  color: Colors.black54,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // thicker, interactive progress bar
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onHorizontalDragUpdate: (e) {
-                          final box = context.findRenderObject() as RenderBox;
-                          final pos = box.globalToLocal(e.globalPosition);
-                          final pct = pos.dx / box.size.width;
-                          final seekTo = _controller.value.duration * pct;
-                          _controller.seekTo(seekTo < Duration.zero
-                              ? Duration.zero
-                              : seekTo > _controller.value.duration
-                                  ? _controller.value.duration
-                                  : seekTo);
-                        },
-                        child: SizedBox(
-                          height: 10,
-                          child: VideoProgressIndicator(
-                            _controller,
-                            allowScrubbing: true,
-                            colors: VideoProgressColors(
-                              playedColor: Color(0xFF0086CF),
-                              bufferedColor: Colors.white60,
-                              backgroundColor: Colors.white24,
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
+          return AspectRatio(
+            aspectRatio: _controller.value.aspectRatio,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggleControlsVisibility,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  VideoPlayer(_controller),
+                  // when hidden: thin bottom bar only
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SizedBox(
+                      height: 3,
+                      child: VideoProgressIndicator(
+                        _controller,
+                        allowScrubbing: false,
+                        colors: VideoProgressColors(
+                          playedColor: Color(0xFF0086CF),
+                          bufferedColor: Colors.white60,
+                          backgroundColor: Colors.white24,
                         ),
+                        padding: EdgeInsets.zero,
                       ),
+                    ),
+                  ),
 
-                      // controls row (44px tall, centered buttons)
-                      Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                  if (_controlsVisible)
+                    // controls + integrated progress bar
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        color: Colors.black54,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              icon: Icon(Icons.replay_10, color: Colors.white),
-                              onPressed: () =>
-                                  _seekRelative(const Duration(seconds: -10)),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                _isPlaying
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _controller.value.isPlaying
-                                      ? _controller.pause()
-                                      : _controller.play();
-                                });
+                            // thicker, interactive progress bar
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragUpdate: (e) {
+                                final box =
+                                    context.findRenderObject() as RenderBox;
+                                final pos = box.globalToLocal(e.globalPosition);
+                                final pct = pos.dx / box.size.width;
+                                final seekTo = _controller.value.duration * pct;
+                                _controller.seekTo(seekTo < Duration.zero
+                                    ? Duration.zero
+                                    : seekTo > _controller.value.duration
+                                        ? _controller.value.duration
+                                        : seekTo);
                               },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.forward_10, color: Colors.white),
-                              onPressed: () =>
-                                  _seekRelative(const Duration(seconds: 10)),
-                            ),
-                            Expanded(
-                              child: Text(
-                                '${_formatDuration(_currentTime)} / '
-                                '${_formatDuration(_controller.value.duration)}',
-                                style: TextStyle(color: Colors.white),
+                              child: SizedBox(
+                                height: 10,
+                                child: VideoProgressIndicator(
+                                  _controller,
+                                  allowScrubbing: true,
+                                  colors: VideoProgressColors(
+                                    playedColor: Color(0xFF0086CF),
+                                    bufferedColor: Colors.white60,
+                                    backgroundColor: Colors.white24,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                ),
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(Icons.fullscreen, color: Colors.white),
-                              onPressed: _toggleFullScreen,
+
+                            // controls row (44px tall, centered buttons)
+                            Container(
+                              height: 44,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.replay_10,
+                                        color: Colors.white),
+                                    onPressed: () => _seekRelative(
+                                        const Duration(seconds: -10)),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      _isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _controller.value.isPlaying
+                                            ? _controller.pause()
+                                            : _controller.play();
+                                      });
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.forward_10,
+                                        color: Colors.white),
+                                    onPressed: () => _seekRelative(
+                                        const Duration(seconds: 10)),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      '${_formatDuration(_currentTime)} / '
+                                      '${_formatDuration(_controller.value.duration)}',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.fullscreen,
+                                        color: Colors.white),
+                                    onPressed: _toggleFullScreen,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
-          ],
-        ),
-      ),
-    );
+            ),
+          );
+        });
   }
 }
 
@@ -322,8 +344,7 @@ class _FullScreenVideoPlayer extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<_FullScreenVideoPlayer> createState() =>
-      _FullScreenVideoPlayerState();
+  State<_FullScreenVideoPlayer> createState() => _FullScreenVideoPlayerState();
 }
 
 class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
@@ -416,7 +437,6 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                   ),
                 ),
               ),
-
             if (_controlsVisible)
               Positioned(
                 left: 0,
@@ -430,17 +450,13 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                       GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onHorizontalDragUpdate: (e) {
-                          final box =
-                              context.findRenderObject() as RenderBox;
-                          final pos =
-                              box.globalToLocal(e.globalPosition);
+                          final box = context.findRenderObject() as RenderBox;
+                          final pos = box.globalToLocal(e.globalPosition);
                           final pct = pos.dx / box.size.width;
-                          final seekTo =
-                              widget.controller.value.duration * pct;
+                          final seekTo = widget.controller.value.duration * pct;
                           widget.controller.seekTo(seekTo < Duration.zero
                               ? Duration.zero
-                              : seekTo >
-                                      widget.controller.value.duration
+                              : seekTo > widget.controller.value.duration
                                   ? widget.controller.value.duration
                                   : seekTo);
                         },
@@ -460,15 +476,12 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                       ),
                       Container(
                         height: 44,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Row(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             IconButton(
-                              icon: Icon(Icons.replay_10,
-                                  color: Colors.white),
+                              icon: Icon(Icons.replay_10, color: Colors.white),
                               onPressed: () =>
                                   _seekRelative(Duration(seconds: -10)),
                             ),
@@ -482,18 +495,13 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                               onPressed: () {
                                 setState(() {
                                   widget.controller.value.isPlaying
-                                      ? widget
-                                          .controller
-                                          .pause()
-                                      : widget
-                                          .controller
-                                          .play();
+                                      ? widget.controller.pause()
+                                      : widget.controller.play();
                                 });
                               },
                             ),
                             IconButton(
-                              icon: Icon(Icons.forward_10,
-                                  color: Colors.white),
+                              icon: Icon(Icons.forward_10, color: Colors.white),
                               onPressed: () =>
                                   _seekRelative(Duration(seconds: 10)),
                             ),
@@ -505,11 +513,9 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(
-                                  Icons.fullscreen_exit,
+                              icon: const Icon(Icons.fullscreen_exit,
                                   color: Colors.white),
-                              onPressed: () =>
-                                  Navigator.of(context).pop(),
+                              onPressed: () => Navigator.of(context).pop(),
                             ),
                           ],
                         ),
