@@ -11,12 +11,12 @@ class CincopaVideoPlayer extends StatefulWidget {
   final Map<String, String>? userData;
   final Map<String, dynamic> configs;
 
-  const CincopaVideoPlayer(
-      {Key? key,
-      required this.hlsUrl,
-      this.userData,
-      this.configs = const {"autoplay": true}})
-      : super(key: key);
+  const CincopaVideoPlayer({
+    Key? key,
+    required this.hlsUrl,
+    this.userData,
+    this.configs = const {},
+  }) : super(key: key);
 
   @override
   State<CincopaVideoPlayer> createState() => _CincopaVideoPlayerState();
@@ -71,7 +71,6 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
     });
   }
 
-  // ────── NEW FUNCTION: fetch video_name & poster URL ──────
   Future<void> _fetchVideoMetadata(String rid) async {
     final url =
         'https://rtcdn.cincopa.com/meta_json.aspx?fid=A4HAcLOLOO68!$rid&ver=app';
@@ -104,7 +103,9 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
           setState(() {});
         }
       }
-    } catch (_) {/* ignore errors */}
+    } catch (_) {
+      /* ignore errors */
+    }
   }
 
   void _videoListener() {
@@ -144,7 +145,6 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
 
   Future<void> _toggleFullScreen() async {
     final wasPlaying = _controller.value.isPlaying;
-    if (wasPlaying) await _controller.pause();
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
@@ -192,30 +192,64 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: _ready,
-        builder: (context, snap) {
-          // still loading metadata or video initialization, or error
-           if (_posterUrl.isNotEmpty && (snap.connectionState != ConnectionState.done ||
-              _controller.value.hasError ||
-              _controller.value.isBuffering)) {
-            return AspectRatio(
-              aspectRatio: _controller.value.isInitialized
-                  ? _controller.value.aspectRatio
-                  : (16 / 9),
-              child: Image.network(_posterUrl, fit: BoxFit.cover),
-            );
-          }
-
+      future: _ready,
+      builder: (context, snap) {
+        // Show poster with big play button if loading, error, or buffering
+        if (_posterUrl.isNotEmpty &&
+            (snap.connectionState != ConnectionState.done ||
+                _controller.value.hasError ||
+                _controller.value.isBuffering)) {
           return AspectRatio(
-            aspectRatio: _controller.value.aspectRatio,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _toggleControlsVisibility,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  VideoPlayer(_controller),
-                  // when hidden: thin bottom bar only
+            aspectRatio: _controller.value.isInitialized
+                ? _controller.value.aspectRatio
+                : (16 / 9),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.network(_posterUrl, fit: BoxFit.cover),
+                IconButton(
+                  iconSize: 64,
+                  color: Colors.white70,
+                  icon: Icon(Icons.play_circle_outline),
+                  onPressed: () {
+                    _controller.play();
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Show video with overlay play button when paused
+        return AspectRatio(
+          aspectRatio: _controller.value.aspectRatio,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggleControlsVisibility,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                // Video + overlay play button
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    VideoPlayer(_controller),
+                    if (!_controller.value.isPlaying)
+                      IconButton(
+                        iconSize: 64,
+                        color: Colors.white70,
+                        icon: Icon(Icons.play_circle_outline),
+                        onPressed: () {
+                          _controller.play();
+                          setState(() {});
+                        },
+                      ),
+                  ],
+                ),
+
+                // when hidden: thin bottom bar only
+                if (!_controlsVisible)
                   Positioned(
                     left: 0,
                     right: 0,
@@ -235,106 +269,100 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
                     ),
                   ),
 
-                  if (_controlsVisible)
-                    // controls + integrated progress bar
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        color: Colors.black54,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // thicker, interactive progress bar
-                            GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onHorizontalDragUpdate: (e) {
-                                final box =
-                                    context.findRenderObject() as RenderBox;
-                                final pos = box.globalToLocal(e.globalPosition);
-                                final pct = pos.dx / box.size.width;
-                                final seekTo = _controller.value.duration * pct;
-                                _controller.seekTo(seekTo < Duration.zero
-                                    ? Duration.zero
-                                    : seekTo > _controller.value.duration
-                                        ? _controller.value.duration
-                                        : seekTo);
-                              },
-                              child: SizedBox(
-                                height: 10,
-                                child: VideoProgressIndicator(
-                                  _controller,
-                                  allowScrubbing: true,
-                                  colors: VideoProgressColors(
-                                    playedColor: Color(0xFF0086CF),
-                                    bufferedColor: Colors.white60,
-                                    backgroundColor: Colors.white24,
-                                  ),
-                                  padding: EdgeInsets.zero,
+                // controls + integrated progress bar
+                if (_controlsVisible)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      color: Colors.black54,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onHorizontalDragUpdate: (e) {
+                              final box =
+                                  context.findRenderObject() as RenderBox;
+                              final pos = box.globalToLocal(e.globalPosition);
+                              final pct = pos.dx / box.size.width;
+                              final seekTo = _controller.value.duration * pct;
+                              _controller.seekTo(seekTo < Duration.zero
+                                  ? Duration.zero
+                                  : seekTo > _controller.value.duration
+                                      ? _controller.value.duration
+                                      : seekTo);
+                            },
+                            child: SizedBox(
+                              height: 10,
+                              child: VideoProgressIndicator(
+                                _controller,
+                                allowScrubbing: true,
+                                colors: VideoProgressColors(
+                                  playedColor: Color(0xFF0086CF),
+                                  bufferedColor: Colors.white60,
+                                  backgroundColor: Colors.white24,
                                 ),
+                                padding: EdgeInsets.zero,
                               ),
                             ),
-
-                            // controls row (44px tall, centered buttons)
-                            Container(
-                              height: 44,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.replay_10,
-                                        color: Colors.white),
-                                    onPressed: () => _seekRelative(
-                                        const Duration(seconds: -10)),
+                          ),
+                          Container(
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.replay_10,
+                                      color: Colors.white),
+                                  onPressed: () => _seekRelative(
+                                      const Duration(seconds: -10)),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                                    color: Colors.white,
                                   ),
-                                  IconButton(
-                                    icon: Icon(
-                                      _isPlaying
-                                          ? Icons.pause
-                                          : Icons.play_arrow,
-                                      color: Colors.white,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _controller.value.isPlaying
-                                            ? _controller.pause()
-                                            : _controller.play();
-                                      });
-                                    },
+                                  onPressed: () {
+                                    setState(() {
+                                      _controller.value.isPlaying
+                                          ? _controller.pause()
+                                          : _controller.play();
+                                    });
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.forward_10,
+                                      color: Colors.white),
+                                  onPressed: () => _seekRelative(
+                                      const Duration(seconds: 10)),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    '${_formatDuration(_currentTime)} / ${_formatDuration(_controller.value.duration)}',
+                                    style: TextStyle(color: Colors.white),
                                   ),
-                                  IconButton(
-                                    icon: Icon(Icons.forward_10,
-                                        color: Colors.white),
-                                    onPressed: () => _seekRelative(
-                                        const Duration(seconds: 10)),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      '${_formatDuration(_currentTime)} / '
-                                      '${_formatDuration(_controller.value.duration)}',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.fullscreen,
-                                        color: Colors.white),
-                                    onPressed: _toggleFullScreen,
-                                  ),
-                                ],
-                              ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.fullscreen,
+                                      color: Colors.white),
+                                  onPressed: _toggleFullScreen,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -361,17 +389,6 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
     _controlsTimer?.cancel();
     _controlsTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _controlsVisible = false);
-    });
-  }
-
-  void _toggleControlsVisibility() {
-    setState(() {
-      _controlsVisible = !_controlsVisible;
-      if (_controlsVisible) {
-        _startControlsTimer();
-      } else {
-        _controlsTimer?.cancel();
-      }
     });
   }
 
@@ -405,19 +422,37 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
       backgroundColor: Colors.black,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: _toggleControlsVisibility,
+        onTap: () {
+          setState(() => _controlsVisible = !_controlsVisible);
+          if (_controlsVisible) _startControlsTimer();
+        },
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
             Positioned.fill(
               child: Center(
-                child: AspectRatio(
-                  aspectRatio: widget.controller.value.aspectRatio,
-                  child: VideoPlayer(widget.controller),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: widget.controller.value.aspectRatio,
+                      child: VideoPlayer(widget.controller),
+                    ),
+                    // ← this overlay play button in fullscreen:
+                    if (!widget.controller.value.isPlaying)
+                      IconButton(
+                        iconSize: 64,
+                        color: Colors.white70,
+                        icon: Icon(Icons.play_circle_outline),
+                        onPressed: () {
+                          widget.controller.play();
+                          setState(() => _controlsVisible = true);
+                        },
+                      ),
+                  ],
                 ),
               ),
             ),
-
             if (!_controlsVisible)
               Positioned(
                 left: 0,
@@ -507,8 +542,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                             ),
                             Expanded(
                               child: Text(
-                                '${_formatDuration(widget.controller.value.position)} / '
-                                '${_formatDuration(widget.controller.value.duration)}',
+                                '${_formatDuration(widget.controller.value.position)} / ${_formatDuration(widget.controller.value.duration)}',
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),
