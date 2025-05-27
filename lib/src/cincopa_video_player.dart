@@ -194,32 +194,32 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
     return FutureBuilder(
       future: _ready,
       builder: (context, snap) {
-        // Show poster with big play button if loading, error, or buffering
-        if (_posterUrl.isNotEmpty &&
-            (snap.connectionState != ConnectionState.done ||
-                _controller.value.hasError ||
-                _controller.value.isBuffering)) {
-          return AspectRatio(
-            aspectRatio: _controller.value.isInitialized
-                ? _controller.value.aspectRatio
-                : (16 / 9),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Image.network(_posterUrl, fit: BoxFit.cover),
-                IconButton(
-                  iconSize: 64,
-                  color: Colors.white70,
-                  icon: Icon(Icons.play_circle_outline),
-                  onPressed: () {
-                    _controller.play();
-                    setState(() {});
-                  },
-                ),
-              ],
-            ),
-          );
-        }
+        //Show poster with big play button if loading, error, or buffering
+        // if (_posterUrl.isNotEmpty &&
+        //     ((snap.connectionState != ConnectionState.done ||
+        //         _controller.value.hasError ||
+        //         _controller.value.isBuffering) && !_controller.value.isPlaying)) {
+        //   return AspectRatio(
+        //     aspectRatio: _controller.value.isInitialized
+        //         ? _controller.value.aspectRatio
+        //         : (16 / 9),
+        //     child: Stack(
+        //       alignment: Alignment.center,
+        //       children: [
+        //         Image.network(_posterUrl, fit: BoxFit.cover),
+        //         IconButton(
+        //           iconSize: 64,
+        //           color: Colors.white70,
+        //           icon: Icon(Icons.play_circle_outline),
+        //           onPressed: () {
+        //             _controller.play();
+        //             setState(() {});
+        //           },
+        //         ),
+        //       ],
+        //     ),
+        //   );
+        // }
 
         // Show video with overlay play button when paused
         return AspectRatio(

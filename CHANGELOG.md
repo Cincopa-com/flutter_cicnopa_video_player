@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented.
 
+## [0.0.4] - 2025-05-26
+### Changed
+- Bug fixing
+
 ## [0.0.3] - 2025-05-26
 ### Changed
 - The `configs` parameter now accepts `{ autoplay: false }` to disable the default autoplay behavior.
