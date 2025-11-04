@@ -6,7 +6,7 @@ A Flutter package that wraps an HLS video stream with built‑in Cincopa analyti
 
 * **HLS playback**: Stream `.m3u8` sources via a Flutter-friendly widget.
 * **Cincopa analytics**: Automatically send `video.play`, `video.pause`, and periodic `video.timeupdate` events to Cincopa endpoints.
-* **Configurable metadata**: Pass user data (e.g. `email`, `cc_id`) and video config (e.g. `autoplay`).
+* **Configurable metadata**: Pass user data (e.g. `email`, `acc_id`) and video config (e.g. `autoplay`).
 * **Customizable UI**: Control `aspectRatio`, `key`, and embed inside any layout.
 
 ## Installation
@@ -59,7 +59,7 @@ class _MyAppState extends State<MyApp> {
     final id = random.nextInt(1000000);
     return {
       'email': 'user${id}@example.com',
-      'cc_id': '${1000 + id}',
+      'acc_id': '${1000 + id}',
     };
   }
   void _switchVideo(String newUrl, String newTitle) {
