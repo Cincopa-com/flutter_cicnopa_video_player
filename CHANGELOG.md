@@ -1,6 +1,11 @@
 # Changelog
 
 All notable changes to this project will be documented.
+## [0.0.5] - 2025-11-04
+### Changed
+- Fixed dependecies
+- Updated readme
+- Added example
 
 ## [0.0.4] - 2025-05-26
 ### Changed
