@@ -91,17 +91,17 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
         final media = data['media'] as Map<String, dynamic>?;
         final items = (media?['items'] as List<dynamic>?) ?? [];
 
-        if (items.isNotEmpty) {
-          final item = items.first as Map<String, dynamic>;
-          final fetchedName =
-              (item['title'] as String?) ?? (item['filename'] as String?) ?? '';
-          _videoName = fetchedName;
+        // if (items.isNotEmpty) {
+        //   final item = items.first as Map<String, dynamic>;
+        //   final fetchedName =
+        //       (item['title'] as String?) ?? (item['filename'] as String?) ?? '';
+        //   _videoName = fetchedName;
 
-          final versions = item['versions'] as Map<String, dynamic>? ?? {};
-          // _posterUrl =
-          //     (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
-          // setState(() {});
-        }
+        //   final versions = item['versions'] as Map<String, dynamic>? ?? {};
+        //   _posterUrl =
+        //        (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
+        //    setState(() {});
+        // }
       }
     } catch (_) {
       /* ignore errors */
