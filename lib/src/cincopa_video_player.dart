@@ -88,8 +88,8 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
           _uid = maybeUid;
         }
 
-        final media = data['media'] as Map<String, dynamic>?;
-        final items = (media?['items'] as List<dynamic>?) ?? [];
+        // final media = data['media'] as Map<String, dynamic>?;
+        // final items = (media?['items'] as List<dynamic>?) ?? [];
 
         // if (items.isNotEmpty) {
         //   final item = items.first as Map<String, dynamic>;
