@@ -1,6 +1,6 @@
 name: cincopa_video_player
 description: A Flutter HLS video player with analytics based on cincopa.
-version: 0.0.4
+version: 0.0.5
 homepage: https://github.com/Cincopa-com/flutter_cicnopa_video_player.git
 environment:
   sdk: ">=2.18.0 <4.0.0"
@@ -9,9 +9,9 @@ dependencies:
   flutter:
     sdk: flutter
   # Any other dependencies your code uses:
-  video_player: ^2.5.0
-  http: ^1.4.0
+  video_player: ^2.10.0
+  http: ^1.5.0
 dev_dependencies:
   flutter_test:                # if Flutter package
     sdk: flutter
-  test: ^1.21.0                # for pure-Dart tests
+  test: ^1.25.15                # for pure-Dart tests

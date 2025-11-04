@@ -6,7 +6,7 @@ A Flutter package that wraps an HLS video stream with built‑in Cincopa analyti
 
 * **HLS playback**: Stream `.m3u8` sources via a Flutter-friendly widget.
 * **Cincopa analytics**: Automatically send `video.play`, `video.pause`, and periodic `video.timeupdate` events to Cincopa endpoints.
-* **Configurable metadata**: Pass user data (e.g. `email`, `cc_id`) and video config (e.g. `uid`, `video_name`).
+* **Configurable metadata**: Pass user data (e.g. `email`, `cc_id`) and video config (e.g. `autoplay`).
 * **Customizable UI**: Control `aspectRatio`, `key`, and embed inside any layout.
 
 ## Installation
@@ -34,6 +34,7 @@ Import the package and use the `CincopaVideoPlayer` widget:
 ```dart
 import 'package:flutter/material.dart';
 import 'package:cincopa_video_player/cincopa_video_player.dart';
+import 'dart:math';
 
 void main() {
   runApp(const MyApp());
@@ -48,8 +49,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   // Example HLS URL
-  String _hlsStreamUrl = 'https://example.com/stream.m3u8';
-  String _videoTitle = 'Amazing HLS Video';
+  String _hlsStreamUrl = 'https://rtcdn.cincopa.com/AcEDQoI4gGxV.m3u8';
+  String _videoTitle = 'Amazing Cincopa  Video';
   Key _videoPlayerKey = UniqueKey();
 
   // User data for analytics
@@ -87,8 +88,8 @@ class _MyAppState extends State<MyApp> {
               ),
               ElevatedButton(
                 onPressed: () => _switchVideo(
-                  'https://example.com/another.m3u8',
-                  'Second Video',
+                  'https://rtcdn.cincopa.com/AcCDOtcj2pv-.m3u8',
+                  'Another Cincopa Video',
                 ),
                 child: const Text('Switch Video'),
               ),

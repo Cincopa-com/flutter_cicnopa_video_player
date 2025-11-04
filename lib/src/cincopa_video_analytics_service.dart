@@ -3,12 +3,16 @@ import 'dart:convert' as convert;
 import 'dart:math';
 import 'package:http/http.dart' as http;
 
+/// A service to handle Cincopa video analytics tracking.
 class CincopaVideoAnalyticsService {
+  /// The resource ID (rid) of the video asset.
   final String rid;
+  /// The user ID (uid) of the viewer.
   final String? uid;
   final String? userEmail;
   final String? userName;
   final String? userAccountId;
+  /// The unique session ID for this viewing session.
   static String? _sessionID;
   final Map<int, int> _heatmap = {};
   int _lastPosition = -1;
@@ -23,6 +27,7 @@ class CincopaVideoAnalyticsService {
       'https://analytics.cincopa.com/ohm.aspx';
   static const int _baseUpdateIntervalSeconds = 5;
 
+  /// Creates a new instance of the analytics service.
   CincopaVideoAnalyticsService({
     required this.rid,
     this.uid,
@@ -88,8 +93,7 @@ class CincopaVideoAnalyticsService {
       const Duration(seconds: _baseUpdateIntervalSeconds),
     );
     print(
-      '[Analytics] Next commit scheduled in ${_baseUpdateIntervalSeconds}s at $_nextCommitTime'
-    );
+        '[Analytics] Next commit scheduled in ${_baseUpdateIntervalSeconds}s at $_nextCommitTime');
   }
 
   /// Builds the compact hm-range string
@@ -150,13 +154,11 @@ class CincopaVideoAnalyticsService {
       'dur': durSeconds,
     };
 
-
-     final Map<String, dynamic> ud = {};
-      if (userEmail != null) ud['email'] = userEmail;
-      if (userName != null) ud['name'] = userName;
-      if (userAccountId != null) ud['acc_id'] = userAccountId;
-      if (ud.isNotEmpty) payload['ud'] = ud;
-
+    final Map<String, dynamic> ud = {};
+    if (userEmail != null) ud['email'] = userEmail;
+    if (userName != null) ud['name'] = userName;
+    if (userAccountId != null) ud['acc_id'] = userAccountId;
+    if (ud.isNotEmpty) payload['ud'] = ud;
 
     final jsonString = convert.jsonEncode(payload);
     print('[Analytics] Sending payload j=$jsonString');
@@ -168,8 +170,7 @@ class CincopaVideoAnalyticsService {
       },
     );
     http.get(uri).then((response) {
-      print(
-          '[Analytics] Sent to $uri, status: ${response.statusCode}');
+      print('[Analytics] Sent to $uri, status: ${response.statusCode}');
     }).catchError((error) {
       print('[Analytics] Error sending analytics: $error');
     });
