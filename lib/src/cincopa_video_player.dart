@@ -35,7 +35,7 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
 
   String _videoName = '';
   String _uid = '';
-  String _posterUrl = '';
+  // String _posterUrl = '';
 
   @override
   void initState() {
@@ -98,9 +98,9 @@ class _CincopaVideoPlayerState extends State<CincopaVideoPlayer> {
           _videoName = fetchedName;
 
           final versions = item['versions'] as Map<String, dynamic>? ?? {};
-          _posterUrl =
-              (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
-          setState(() {});
+          // _posterUrl =
+          //     (versions['jpg_600x450'] as Map<String, dynamic>?)?['url'] ?? '';
+          // setState(() {});
         }
       }
     } catch (_) {
