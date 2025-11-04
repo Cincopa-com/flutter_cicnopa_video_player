@@ -23,11 +23,9 @@ class _MyAppState extends State<MyApp> {
   Map<String, String> get _userData {
     final random = Random();
     final id = random.nextInt(1000000);
-    return {
-      'email': 'user${id}@example.com',
-      'acc_id': '${1000 + id}',
-    };
+    return {'email': 'user${id}@example.com', 'acc_id': '${1000 + id}'};
   }
+
   void _switchVideo(String newUrl, String newTitle) {
     setState(() {
       _hlsStreamUrl = newUrl;
@@ -49,14 +47,15 @@ class _MyAppState extends State<MyApp> {
                 key: _videoPlayerKey,
                 child: CincopaVideoPlayer(
                   hlsUrl: _hlsStreamUrl,
-                  userData: _userData
+                  userData: _userData,
                 ),
               ),
               ElevatedButton(
-                onPressed: () => _switchVideo(
-                  'https://rtcdn.cincopa.com/AcCDOtcj2pv-.m3u8',
-                  'For Marketers',
-                ),
+                onPressed:
+                    () => _switchVideo(
+                      'https://rtcdn.cincopa.com/AcCDOtcj2pv-.m3u8',
+                      'For Marketers',
+                    ),
                 child: const Text('Switch Video'),
               ),
             ],

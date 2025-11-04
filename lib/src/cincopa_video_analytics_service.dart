@@ -7,11 +7,13 @@ import 'package:http/http.dart' as http;
 class CincopaVideoAnalyticsService {
   /// The resource ID (rid) of the video asset.
   final String rid;
+
   /// The user ID (uid) of the viewer.
   final String? uid;
   final String? userEmail;
   final String? userName;
   final String? userAccountId;
+
   /// The unique session ID for this viewing session.
   static String? _sessionID;
   final Map<int, int> _heatmap = {};
